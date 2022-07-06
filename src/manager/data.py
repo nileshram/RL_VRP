@@ -1,12 +1,12 @@
 from os.path import dirname, join
 import pandas as pd
 
-class DataParser:
+class DataManager:
 
     @staticmethod
-    def load_exchange_data():
-        root_dir = dirname(dirname(__file__))
-        data_path = join(root_dir, "data", "optionMetricsSpx2020.csv")
+    def load_exchange_data(yyyy):
+        root_dir = dirname(dirname(dirname(__file__)))
+        data_path = join(root_dir, "data", "optionMetricsSpx{}.csv".format(yyyy))
 
         data = pd.read_csv(data_path)
         data.drop(columns=["secid", "optionid", "index_flag", "issuer", "exercise_style"],
@@ -17,6 +17,6 @@ class DataParser:
         data["date"] = pd.to_datetime(data["date"], format="%Y%m%d")
         data["exdate"] = pd.to_datetime(data["exdate"], format="%Y%m%d")
 
-        print(data.head())
+        return data
 
 

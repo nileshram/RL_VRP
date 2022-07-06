@@ -11,6 +11,7 @@ class BacktestingEngine:
 
     def _init_params(self):
         self.strategies = StrategyFactory()
+        self.strategies.create_strategies()
 
     def _init_conf(self):
         pass

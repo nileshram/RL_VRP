@@ -1,6 +1,7 @@
+from os.path import dirname, join
 from configuration import ConfigurationFactory
 from datetime import datetime
-
+from manager.data import DataManager
 
 class StrategyFactory:
 
@@ -10,6 +11,7 @@ class StrategyFactory:
     def _init_config(self):
         self._config = ConfigurationFactory.create_btest_config()
         self.start_date = self._config["backtest_config"]["start_date"]
+
 
     def create_strategies(self):
         print("{} - Initialising strategies".format(datetime.now()))
@@ -21,6 +23,11 @@ class StrategyFactory:
 
     def gen_first_trading_date(self):
         yyyy = self.start_date[:4]
+        #read the first trade entry date
+        print("{} - Loading first trade date from exchange data".format(datetime.now()))
+        data = DataManager.load_exchange_data(yyyy)
+        print("stop")
+
 
 
 class Strategy:
