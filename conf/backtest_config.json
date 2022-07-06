@@ -1,0 +1,30 @@
+{
+  "backtest_config": {
+    "start_date": "2010-01-01",
+    "end_date": "2021-12-31",
+    "trading_params": {
+      "hold_period": "HTM",
+      "entry_freq": "1d",
+      "dh_params": "1d"
+    },
+    "strategy": {
+      "leg_1": {
+        "delta_strike": 0.40,
+        "delta_strike_type" : "fixed",
+        "call_put": "c",
+        "long_short": -1,
+        "expiry": "1w"
+      },
+      "leg_2": {
+        "delta_strike": 0.40,
+        "delta_strike_type" : "fixed",
+        "call_put": "p",
+        "long_short": -1,
+        "expiry": "1w"
+      }
+    }
+  },
+  "rl_engine": {
+    "no_of_state": 9
+  }
+}
