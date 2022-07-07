@@ -35,3 +35,11 @@ class DataManager:
         return data
 
 
+    @staticmethod
+    def load_exchange_data_and_apply_days_to_expiry_filter(yyyy, opt_expiry_filter=None):
+        data = DataManager.load_exchange_data(yyyy)
+        # to reduce the data size we only preserve the data with expiry dates < option expiry
+        # we also need to reset the index
+        data = data[data["dte"] < opt_expiry_filter]
+        data.reset_index(inplace=True, drop=True)
+        return data

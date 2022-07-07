@@ -59,12 +59,8 @@ class StrategyFactory:
                                                end=self._year_end[idx],
                                                freq=self._leg_freq)
             #next we load the correct csv data
-            data = DataManager.load_exchange_data(year)
-            #to reduce the data size we only preserve the data with expiry dates < option expiry
-            #we also need to reset the index
-            data = data[data["dte"] < opt_expiry_filter]
-            data.reset_index(inplace=True, drop=True)
-
+            data = DataManager.load_exchange_data_and_apply_days_to_expiry_filter(year,
+                                                                                  opt_expiry_filter=opt_expiry_filter)
             ##########
             # step 1 #
             ##########
