@@ -9,7 +9,7 @@ class DataManager:
         data_path = join(root_dir, "data", "optionMetricsSpx{}.csv".format(yyyy))
 
         data = pd.read_csv(data_path)
-        data.drop(columns=["secid", "optionid", "index_flag", "issuer", "exercise_style"],
+        data.drop(columns=["secid", "optionid", "index_flag", "issuer", "exercise_style", "volume", "div_convention", "last_date"],
                   inplace=True)
         data[["strike_price", "best_bid", "best_offer"]] /= 1000
 
