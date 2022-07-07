@@ -3,6 +3,7 @@ from configuration import ConfigurationFactory
 from datetime import datetime
 from manager.data import DataManager
 import pandas as pd
+from utility.date_utility import DateUtility
 
 class StrategyFactory:
 
@@ -40,31 +41,66 @@ class StrategyFactory:
         """
         We generate the list of trading dates based on the entry frequency
         of each leg using pandas date range
+
+        Observe that we have an option expiry filter based on the options that we are trading
+        This reduces the amount of memory we consume when reading data as a filter
+
         :return: A list of trading dates based on the trading parameters
         """
+
+        #load frequencies and expiries from config
         self._leg_freq = self._config["backtest_config"]["trading_params"]["entry_freq"]
+        self._opt_expiry = self._config["backtest_config"]["trading_params"]["opt_expiry"]
+        opt_expiry_filter = DateUtility.get_days(self._opt_expiry)
+
         for idx, year in enumerate(self._years):
             #first we create the range of dates based on entry frequency
             _trading_date_range = pd.date_range(start=self._year_start[idx],
                                                end=self._year_end[idx],
                                                freq=self._leg_freq)
-            #next we load the correct csv data and use this to filter the trading date range we created above
-            #incase some of the data doesnt exist for those trading dates
+            #next we load the correct csv data
             data = DataManager.load_exchange_data(year)
-            # get the nearest date to start date but first we need to set it as an index
-            _tmp = pd.DataFrame(data["date"].unique(),
-                                index=data["date"].unique())
-            _first_available_date_idx = _tmp.index.get_loc(self.start_date,
-                                                           method='nearest')
-            _first_trade_date = data.iloc[_first_available_date_idx]["date"]
-            _data_trade_dates = data[data["date"] >= _first_trade_date]["date"].unique()
+            #to reduce the data size we only preserve the data with expiry dates < option expiry
+            #we also need to reset the index
+            data = data[data["dte"] < opt_expiry_filter]
+            data.reset_index(inplace=True, drop=True)
 
-            #Finally apply the _data_trade_dates as a filter to _trading_date_range
-            _mask = _trading_date_range.isin(_data_trade_dates)
-            _final_trading_dates = _trading_date_range[_mask].to_list()
-            #we now append these to self.strategies for each year
+            ##########
+            # step 1 #
+            ##########
+            #step 1: filter the trading date range we created above
+            #incase some of the data doesnt exist for those trading dates
+            _final_trading_dates = self._gen_trading_dates(data, _trading_date_range)
+            #end step 1: append these to self.strategies per year
             self.strategies[year] = dict.fromkeys(_final_trading_dates)
-        print("stop")
+
+            ##########
+            # step 2 #
+            ##########
+            #step 2: from the clean list of trading dates we have we now need to create the strategy and leg
+            #objects from the leg data
+
+            print("stop")
+
+
+    def _gen_trading_dates(self, data_trading_dates, pd_trading_dates):
+        """
+        From the raw data we create the list of final trading dates and return the output as a list
+        :return:
+        """
+
+        # get the nearest date to start date but first we need to set it as an index
+        _tmp = pd.DataFrame(data_trading_dates["date"].unique(),
+                            index=data_trading_dates["date"].unique())
+        _first_available_date_idx = _tmp.index.get_loc(self.start_date,
+                                                       method='nearest')
+        _first_trade_date = data_trading_dates.iloc[_first_available_date_idx]["date"]
+        _data_trade_dates = data_trading_dates[data_trading_dates["date"] >= _first_trade_date]["date"].unique()
+
+        # Finally apply the _data_trade_dates as a filter to _trading_date_range
+        _mask = pd_trading_dates.isin(_data_trade_dates)
+        _final_trading_dates = pd_trading_dates[_mask].to_list()
+        return _final_trading_dates
 
     def create_strategies(self):
         print("{} - Initialising strategies".format(datetime.now()))

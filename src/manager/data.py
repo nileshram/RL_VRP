@@ -29,6 +29,8 @@ class DataManager:
         #parse dates
         data["date"] = pd.to_datetime(data["date"], format="%Y%m%d")
         data["exdate"] = pd.to_datetime(data["exdate"], format="%Y%m%d")
+        #compute days to expiry
+        data["dte"] = (data["exdate"] - data["date"]).astype('timedelta64[D]')
 
         return data
 
