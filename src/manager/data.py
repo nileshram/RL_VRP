@@ -1,16 +1,29 @@
 from os.path import dirname, join
 import pandas as pd
+from datetime import datetime
 
 class DataManager:
 
     @staticmethod
     def load_exchange_data(yyyy):
         root_dir = dirname(dirname(dirname(__file__)))
-        data_path = join(root_dir, "data", "optionMetricsSpx{}.csv".format(yyyy))
-
+        _fname = "optionMetricsSpx{}.csv"
+        data_path = join(root_dir, "raw_data", _fname.format(yyyy))
+        print("{} - Loading exchange data {}".format(datetime.now(),
+                                                     _fname.format(yyyy)))
         data = pd.read_csv(data_path)
-        data.drop(columns=["secid", "optionid", "index_flag", "issuer", "exercise_style", "volume", "div_convention", "last_date"],
-                  inplace=True)
+        try:
+            data.drop(columns=["secid", "optionid", "index_flag", "issuer", "exercise_style", "volume", "div_convention", "last_date"],
+                      inplace=True)
+        except Exception as e:
+            try:
+                data.drop(columns=["optionid", "index_flag", "issuer", "exercise_style", "volume", "last_date"],
+                          inplace=True)
+            except Exception as e:
+                data.drop(columns=["optionid", "index_flag", "issuer", "exercise_style", "volume"],
+                          inplace=True)
+            print("{} - Successfully dropped redundant columns from {}".format(datetime.now(),
+                                                                               _fname.format(yyyy)))
         data[["strike_price", "best_bid", "best_offer"]] /= 1000
 
         #parse dates
