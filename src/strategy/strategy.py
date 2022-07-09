@@ -76,6 +76,8 @@ class StrategyFactory:
             #step 2: from the clean list of trading dates we have we now need to create the strategy and leg
             #objects from the leg data
 
+
+
             print("stop")
 
 
