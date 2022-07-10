@@ -51,11 +51,11 @@ class DataManager:
     def load_priced_exchange_data(yyyy, option_expiry_calendar="weeklies"):
         #filepaths
         root_dir = dirname(dirname(dirname(__file__)))
-        _fname = "priced_{}_optionMetricsSpx{}.csv".format(option_expiry_calendar)
-        data_path = join(root_dir, "priced_data", _fname.format(yyyy))
+        _fname = "priced_{}_optionMetricsSpx{}.csv"
+        data_path = join(root_dir, "priced_data", _fname.format(option_expiry_calendar, yyyy))
 
         print("{} - Loading exchange data {}".format(datetime.now(),
-                                                     _fname.format(yyyy)))
+                                                     _fname.format(option_expiry_calendar, yyyy)))
         data = pd.read_csv(data_path)
         #parse dates
         data["date"] = pd.to_datetime(data["date"], format="%Y-%m-%d")
