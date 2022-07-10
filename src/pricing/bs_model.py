@@ -2,8 +2,8 @@ import numpy as np
 from scipy.stats import norm
 from scipy.special import ndtri
 from scipy import optimize
-
-
+from py_vollib.black_scholes.implied_volatility import implied_volatility as iv
+from py_vollib.helpers.exceptions import PriceIsAboveMaximum, PriceIsBelowIntrinsic
 
 class BlackScholes:
     """
@@ -79,4 +79,31 @@ class BlackScholes:
         else:
             vega = 0
         return vega
+
+    @staticmethod
+    def compute_vol_from_price(forward, strike, mty, opt_price, r=0, ann_factor=365, option_type=None):
+
+        if mty == 0:
+            return 0
+        else:
+            def func(vol, opt_type, forward, strike, mty, r, ann_factor):
+                return BlackScholes.compute_price(forward=forward, strike=strike, mty=mty, vol=vol, option_type=option_type) - opt_price
+            try:
+                res = optimize.brentq(func, -0.001, 2, args=(option_type, forward, strike, mty, r, ann_factor),
+                                   xtol=0.0000001,
+                                   maxiter=100000)
+            except Exception as e:
+                return 0
+            return res
+
+    @staticmethod
+    def get_vol(forward, strike, mty, opt_price, r=0, ann_factor=365, option_type=None):
+        if mty == 0:
+            return 0
+        else:
+            try:
+                impl_vol = iv(opt_price, forward, strike, mty/365, r, option_type.lower())
+            except Exception as e:
+                return 0
+            return impl_vol
 

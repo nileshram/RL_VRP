@@ -50,8 +50,7 @@ class StrategyFactory:
 
         #load frequencies and expiries from config
         self._leg_freq = self._config["backtest_config"]["trading_params"]["entry_freq"]
-        self._opt_expiry = self._config["backtest_config"]["trading_params"]["opt_expiry"]
-        opt_expiry_filter = DateUtility.get_days(self._opt_expiry)
+        self._opt_expiry_calendar = self._config["backtest_config"]["trading_params"]["option_expiry_calendar"]
 
         for idx, year in enumerate(self._years):
             #first we create the range of dates based on entry frequency
@@ -59,8 +58,8 @@ class StrategyFactory:
                                                end=self._year_end[idx],
                                                freq=self._leg_freq)
             #next we load the correct csv data
-            data = DataManager.load_exchange_data_and_apply_days_to_expiry_filter(year,
-                                                                                  opt_expiry_filter=opt_expiry_filter)
+            data = DataManager.load_priced_exchange_data(year,
+                                                         option_expiry_calendar=self._opt_expiry_calendar)
             ##########
             # step 1 #
             ##########

@@ -6,7 +6,7 @@
       "hold_period": "HTM",
       "entry_freq": "1B",
       "dh_params": "1d",
-      "opt_expiry" : "5d"
+      "option_expiry_calendar" : "weeklies"
     },
     "strategy": {
       "leg_1": {
