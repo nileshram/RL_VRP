@@ -37,6 +37,25 @@ class StrategyFactory:
         self._year_end = _years.to_list()
         self._years = [str(y.year) for y in _years]
 
+    def _gen_trading_dates(self, data_trading_dates, pd_trading_dates):
+        """
+        From the raw data we create the list of final trading dates and return the output as a list
+        :return:
+        """
+
+        # get the nearest date to start date but first we need to set it as an index
+        _tmp = pd.DataFrame(data_trading_dates["date"].unique(),
+                            index=data_trading_dates["date"].unique())
+        _first_available_date_idx = _tmp.index.get_loc(self.start_date,
+                                                       method='nearest')
+        _first_trade_date = data_trading_dates.iloc[_first_available_date_idx]["date"]
+        _data_trade_dates = data_trading_dates[data_trading_dates["date"] >= _first_trade_date]["date"].unique()
+
+        # Finally apply the _data_trade_dates as a filter to _trading_date_range
+        _mask = pd_trading_dates.isin(_data_trade_dates)
+        _final_trading_dates = pd_trading_dates[_mask].to_list()
+        return _final_trading_dates
+
     def create_strategy_trading_dates(self):
         """
         We generate the list of trading dates based on the entry frequency
@@ -75,36 +94,46 @@ class StrategyFactory:
             #step 2: from the clean list of trading dates we have we now need to create the strategy and leg
             #objects from the leg data
 
+            #multileg strategy
+            self._multileg_config = self._config["backtest_config"]["multi_leg_strategy"]
+            #we now need to collect the list of options that are in the delta strike range and create strategy
+            #objects assuming there are all 4 days to expiry in the weeklys
+
+            for trade_date in self.strategies[year]:
+                #we omit the trading day if there is no 4 dte option (i.e. max of dte)
+                new_leg_mty = data["dte"].max()
+                #step 1: first get all of the new weeklys that we trade on this date
+                #i.e. if we dont have any new weeklys to trade on this date then we skip this from the data
+                if (data[data["date"] == trade_date]["dte"] == new_leg_mty).value_counts().index[0] is True:
+                    #then we construct the strategy here
+                    _tmp = data[data["date"] == trade_date].copy()
+                    #we now filter for the delta strikes
+                    _tmp
+                    self.strategies[year][trade_date] = Strategy(config_params=self._multileg_config,
+                                                                 trade_date=trade_date,
+                                                                 data=data)
+                #iterate through each of the rows in the trading date and we need to check
+
+                #if the delta strike is in the bucket and filter for these strikes
+
 
 
             print("stop")
 
 
-    def _gen_trading_dates(self, data_trading_dates, pd_trading_dates):
-        """
-        From the raw data we create the list of final trading dates and return the output as a list
-        :return:
-        """
 
-        # get the nearest date to start date but first we need to set it as an index
-        _tmp = pd.DataFrame(data_trading_dates["date"].unique(),
-                            index=data_trading_dates["date"].unique())
-        _first_available_date_idx = _tmp.index.get_loc(self.start_date,
-                                                       method='nearest')
-        _first_trade_date = data_trading_dates.iloc[_first_available_date_idx]["date"]
-        _data_trade_dates = data_trading_dates[data_trading_dates["date"] >= _first_trade_date]["date"].unique()
-
-        # Finally apply the _data_trade_dates as a filter to _trading_date_range
-        _mask = pd_trading_dates.isin(_data_trade_dates)
-        _final_trading_dates = pd_trading_dates[_mask].to_list()
-        return _final_trading_dates
 
     def create_strategies(self):
         print("{} - Initialising strategies".format(datetime.now()))
 
 class Strategy:
 
-    def __init__(self):
+    def __init__(self, config_params=None, data=None, trade_date=None):
+
+        #filter the data fpr legs
+        _filtered_data = data[data["date"] == trade_date]
+
+
         self._init_config()
         self._parse_dates()
 
