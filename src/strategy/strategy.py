@@ -15,7 +15,8 @@ class StrategyFactory:
         self._init_date_config()
         #step 1: initialise the filtered set of trading dates based on leg entry frequency
         self.create_strategies()
-        #step 2: for each of the trading dates, we need to trade the correct set of expiries
+        #clean the strategies container removing redundant trade dates
+        print("stop")
 
     def _init_params(self):
         self.strategies = {}
