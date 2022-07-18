@@ -16,6 +16,7 @@ class StrategyFactory:
         #step 1: initialise the filtered set of trading dates based on leg entry frequency
         self.create_strategies()
         #clean the strategies container removing redundant trade dates
+        self._clean_strategies()
         print("stop")
 
     def _init_params(self):
@@ -117,6 +118,18 @@ class StrategyFactory:
                 else:
                     print("{} - Skipping trade date: {} as there is no leg data".format(datetime.now(),
                                                                                         trade_date))
+    def _clean_strategies(self):
+        """
+        We clean the strategies object removing redundant dates
+        :return:
+        """
+        for yyyy in list(self.strategies.keys()):
+            _tmp = {}
+            for t_stamp, strat in list(self.strategies[yyyy].items()):
+                if strat is not None:
+                    _tmp[t_stamp] = strat
+            #reassign back to strategies
+            self.strategies[yyyy] = _tmp
 
 
 class Strategy:
