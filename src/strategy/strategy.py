@@ -17,7 +17,7 @@ class StrategyFactory:
         self.create_strategies()
         #clean the strategies container removing redundant trade dates
         self._clean_strategies()
-        print("stop")
+
 
     def _init_params(self):
         self.strategies = {}
@@ -123,6 +123,7 @@ class StrategyFactory:
         We clean the strategies object removing redundant dates
         :return:
         """
+        print("{} - Cleaning Strategies".format(datetime.now()))
         for yyyy in list(self.strategies.keys()):
             _tmp = {}
             for t_stamp, strat in list(self.strategies[yyyy].items()):
