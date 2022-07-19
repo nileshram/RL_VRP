@@ -164,6 +164,9 @@ class Strategy:
             _leg.leg_data = data.loc[(data["exdate"] == _leg.exp_date) & \
                                      (data["strike_price"] == _leg.strike) & \
                                      (data["cp_flag"] == _leg.opt_type)]
+            #the data has duplicate rows which is annoying - we drop them here
+            #note we had dte 4,4,3,3,2,2,1,1,0 so we drop these for the same fixed strike to expiry
+            _leg.leg_data.drop_duplicates(subset="dte", keep="last", inplace=True)
             #add to the leg collection
             self.call_legs[leg_id] = _leg
 
@@ -175,6 +178,9 @@ class Strategy:
             _leg.leg_data = data.loc[(data["exdate"] == _leg.exp_date) & \
                                      (data["strike_price"] == _leg.strike) & \
                                      (data["cp_flag"] == _leg.opt_type)]
+            #the data has duplicate rows which is annoying - we drop them here
+            #note we had dte 4,4,3,3,2,2,1,1,0 so we drop these for the same fixed strike to expiry
+            _leg.leg_data.drop_duplicates(subset="dte", keep="last", inplace=True)
             #add to the leg collection
             self.put_legs[leg_id] = _leg
 

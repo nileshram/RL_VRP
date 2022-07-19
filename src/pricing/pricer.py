@@ -37,16 +37,12 @@ class Application:
         data["bs_vol"] = data.apply(lambda x: BlackScholes.compute_vol_from_price(forward=x["forward_price"],
                                                                                   strike=x["strike_price"],
                                                                                   mty=x["dte"],
-                                                                                  opt_price=x["mid_price"] * 1000,
+                                                                                  opt_price=x["mid_price"],
                                                                                   option_type=x["cp_flag"]),
                                                                                   axis=1)
-        #apply pricing AND APPLY MULTIPLIER
-        data["bs_price"] = data.apply(lambda x: BlackScholes.compute_price(forward=x["forward_price"],
-                                                                           strike=x["strike_price"],
-                                                                           mty=x["dte"],
-                                                                           vol=x["bs_vol"],
-                                                                           option_type=x["cp_flag"]),
-                                                                           axis=1) / 1000
+
+
+        #finally we merge the two together i.e. where bs_price is zero we use the bs_price_om_vol
 
         # OBSERVER WE HAD TO RUN THIS AS A TEST TO RECONCILE THE VOLS WE HAD IN THE ORIGINAL DATA FILE
         #IT TURNS OUT THAT WE WERE ABLE TO GET THE SAME VOL ONLY ONCE WE MULTIPLY PRICES BY 1000
@@ -55,12 +51,12 @@ class Application:
         #FINALLY NOTE THAT END OF MONTHLYS ALSO BECOME WEEKLIES SO ITS FINE TO SET A HARD CUT OFF LIMIT
         #TO THE OPTIONS WITH LESS THAN 5 DAYS TO EXPIRY
 
-        # data["bs_price_spxvol"] = data.apply(lambda x: BlackScholes.compute_price(forward=x["forward_price"],
-        #                                                                    strike=x["strike_price"],
-        #                                                                    mty=x["dte"],
-        #                                                                    vol=x["impl_volatility"],
-        #                                                                    option_type=x["cp_flag"]),
-        #                                                                    axis=1) / 1000
+        data["bs_price"] = data.apply(lambda x: BlackScholes.compute_price(forward=x["forward_price"],
+                                                                           strike=x["strike_price"],
+                                                                           mty=x["dte"],
+                                                                           vol=x["bs_vol"],
+                                                                           option_type=x["cp_flag"]),
+                                                                           axis=1)
 
         data["bs_delta"] = data.apply(lambda x: BlackScholes.compute_delta(forward=x["forward_price"],
                                                                            strike=x["strike_price"],

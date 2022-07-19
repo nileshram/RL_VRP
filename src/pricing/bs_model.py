@@ -12,7 +12,6 @@ class BlackScholes:
 
     @staticmethod
     def compute_d1(forward, strike, mty, vol, ann_factor=365):
-
         return(np.log(forward/strike) + vol**2 / 2 * mty / ann_factor) / (vol * np.sqrt(mty/ann_factor))
 
     @staticmethod
@@ -22,12 +21,12 @@ class BlackScholes:
         if mty == 0:
             if option_type.lower() in ["c", "call"]:
                 if max(forward - strike, 0) > 0:
-                    return (forward - strike) / 1000
+                    return (forward - strike)
                 else:
                     return 0
             elif option_type.lower() in ["p", "put"]:
                 if max(strike - forward, 0) > 0:
-                    return (strike - forward) / 1000
+                    return (strike - forward)
                 else:
                     return 0
 
@@ -36,10 +35,11 @@ class BlackScholes:
         d2 = d1 - vol * np.sqrt(mty/ann_factor)
 
         if option_type.lower() in ["c", "call"]:
-            return np.exp(-r * mty/ann_factor) * (forward * norm.cdf(d1) - strike * norm.cdf(d2))
+            price = np.exp(-r * mty/ann_factor) * (forward * norm.cdf(d1) - strike * norm.cdf(d2))
+        elif option_type.lower() in ["p", "put"]:
+            price = np.exp(-r * mty/ann_factor) * (strike * norm.cdf(-d2) - forward * norm.cdf(-d1))
 
-        if option_type.lower() in ["p", "put"]:
-            return np.exp(-r * mty/ann_factor) * (strike * norm.cdf(-d2) - forward * norm.cdf(-d1))
+        return price
 
 
 
@@ -106,4 +106,29 @@ class BlackScholes:
             except Exception as e:
                 return 0
             return impl_vol
+
+    @staticmethod
+    def get_vol_from_price_newton_method(forward, strike, mty, opt_price, r=0, ann_factor=365, option_type=None):
+        """
+        As a sanity check we use the brute force method because the solver doesnt always work
+        """
+        if mty == 0:
+            return 0
+        else:
+            max_iter = 1000
+            precision = 1.0e-4
+            ivol = 0.01
+            for i in range(0, max_iter):
+                new_price = BlackScholes.compute_price(forward=forward, strike=strike, mty=mty,
+                                                       vol=ivol, option_type=option_type)
+                vega = BlackScholes.compute_vega(forward=forward, strike=strike, mty=mty,
+                                                       vol=ivol, option_type=option_type)
+                diff = opt_price - new_price
+                if abs(diff) < precision:
+                    return ivol
+                ivol += diff/vega
+            if ivol <= 0:
+                return 0
+            return ivol
+
 

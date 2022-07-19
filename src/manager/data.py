@@ -25,7 +25,7 @@ class DataManager:
                           inplace=True)
             print("{} - Successfully dropped redundant columns from {}".format(datetime.now(),
                                                                                _fname.format(yyyy)))
-        data[["strike_price", "best_bid", "best_offer"]] /= 1000
+        data[["strike_price"]] /= 1000
 
         #create mid price
         data["mid_price"] = (data["best_bid"] + data["best_offer"]) / 2

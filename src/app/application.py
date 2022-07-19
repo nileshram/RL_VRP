@@ -31,7 +31,7 @@ class BacktestingEngine:
                 for _leg in _strat.call_legs:
                     #compute the pnl here
                     _leg_data = _strat.call_legs[_leg].leg_data
-                    _leg_data["opt_pnl"] = self.config["call_legs"]["long_short"] * _leg_data["bs_price"].diff() * 1000 #for some reason i divided prices by 1000
+                    _leg_data["opt_pnl"] = self.config["call_legs"]["long_short"] * _leg_data["bs_price"].diff()
                     _leg_data["delta_pnl"] = - self.config["call_legs"]["long_short"] * _leg_data["forward_price"].diff() * _leg_data["bs_delta"].shift()
                     _leg_data["dh_pnl"] = _leg_data["opt_pnl"] + _leg_data["delta_pnl"]
                     #now we just need to store the filtered dataframe in a res container (note this is tick pnl)
@@ -51,7 +51,7 @@ class BacktestingEngine:
                 for _leg in _strat.put_legs:
                     #compute the pnl here
                     _leg_data = _strat.put_legs[_leg].leg_data
-                    _leg_data["opt_pnl"] = self.config["put_legs"]["long_short"] * _leg_data["bs_price"].diff() * 1000 #for some reason i divided prices by 1000
+                    _leg_data["opt_pnl"] = self.config["put_legs"]["long_short"] * _leg_data["bs_price"].diff()
                     _leg_data["delta_pnl"] = - self.config["put_legs"]["long_short"] * _leg_data["forward_price"].diff() * _leg_data["bs_delta"].shift()
                     _leg_data["dh_pnl"] = _leg_data["opt_pnl"] + _leg_data["delta_pnl"]
                     #now we just need to store the filtered dataframe in a res container (note this is tick pnl)
@@ -70,6 +70,8 @@ class BacktestingEngine:
                               axis=0).groupby("date").sum()
         plt.plot(total_pnl["opt_pnl"].cumsum(),
                  label="short_call_put_strip_pnl_unsized")
+        plt.plot(total_pnl["dh_pnl"].cumsum(),
+                 label="short_call_put_strip_dh_unsized")
         plt.legend()
         plt.show()
 
