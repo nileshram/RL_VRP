@@ -21,7 +21,7 @@ class Application:
         self.filename = "priced_weeklies_optionMetricsSpx{}.csv"
 
     def run(self):
-        years = [str(i) for i in range(2003, 2020)]
+        years = [str(i) for i in range(2015, 2020)]
         for yy in years:
             #run the pricing
             self._run_pricing_and_risk(yy)
@@ -32,7 +32,8 @@ class Application:
         #test the pricing lib
         data = DataManager.load_exchange_data_and_apply_days_to_expiry_filter(yy,
                                                                               opt_expiry_filter=5)
-
+        #We drop any rows with negative forward price
+        data = data.query('forward_price > 0')
         #WE REQUIRE THE MULTIPLIER HERE
         data["bs_vol"] = data.apply(lambda x: BlackScholes.compute_vol_from_price(forward=x["forward_price"],
                                                                                   strike=x["strike_price"],
@@ -40,13 +41,6 @@ class Application:
                                                                                   opt_price=x["mid_price"],
                                                                                   option_type=x["cp_flag"]),
                                                                                   axis=1)
-
-
-        #finally we merge the two together i.e. where bs_price is zero we use the bs_price_om_vol
-
-        # OBSERVER WE HAD TO RUN THIS AS A TEST TO RECONCILE THE VOLS WE HAD IN THE ORIGINAL DATA FILE
-        #IT TURNS OUT THAT WE WERE ABLE TO GET THE SAME VOL ONLY ONCE WE MULTIPLY PRICES BY 1000
-        #THIS IS THE MULTIPLIER IN THE CONTRACT
 
         #FINALLY NOTE THAT END OF MONTHLYS ALSO BECOME WEEKLIES SO ITS FINE TO SET A HARD CUT OFF LIMIT
         #TO THE OPTIONS WITH LESS THAN 5 DAYS TO EXPIRY
