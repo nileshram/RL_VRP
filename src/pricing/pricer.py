@@ -52,6 +52,14 @@ class Application:
                                                                            option_type=x["cp_flag"]),
                                                                            axis=1)
 
+        #vega test
+        data["bs_price_vol_up_one"] = data.apply(lambda x: BlackScholes.compute_price(forward=x["forward_price"],
+                                                                           strike=x["strike_price"],
+                                                                           mty=x["dte"],
+                                                                           vol=x["bs_vol"] + 0.01,
+                                                                           option_type=x["cp_flag"]),
+                                                                           axis=1)
+
         data["bs_delta"] = data.apply(lambda x: BlackScholes.compute_delta(forward=x["forward_price"],
                                                                            strike=x["strike_price"],
                                                                            mty=x["dte"],

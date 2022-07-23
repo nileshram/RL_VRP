@@ -4,6 +4,7 @@ from datetime import datetime
 from manager.data import DataManager
 import pandas as pd
 from strategy.leg import Leg
+from pricing.bs_model import BlackScholes
 from utility.date_utility import DateUtility
 
 class StrategyFactory:
@@ -24,9 +25,14 @@ class StrategyFactory:
 
     def _init_date_config(self):
         self._config = ConfigurationFactory.create_btest_config()
+
         #initialise start and end dates
         self.start_date = self._config["backtest_config"]["start_date"]
         self.end_date = self._config["backtest_config"]["end_date"]
+
+        #this initialises whether the strategy is multileg_delta_strike_strategy or
+        self._strat_type = self._config["backtest_config"]["trading_params"]["strat_type"]["method"]
+
         #create the list of years as keys based on the data year files
         _years = pd.date_range(start=pd.to_datetime(self.start_date, format="%Y-%m-%d"),
                                end=pd.to_datetime(self.end_date, format="%Y-%m-%d"),
@@ -34,6 +40,7 @@ class StrategyFactory:
         _year_start = pd.date_range(start=pd.to_datetime(self.start_date, format="%Y-%m-%d"),
                                end=pd.to_datetime(self.end_date, format="%Y-%m-%d"),
                                freq="1YS")
+
         #we also create the start and end dates for each of the years so that we can generate the trading dates
         #inbetween the start and end date
         self._year_start = _year_start.to_list()
@@ -97,11 +104,11 @@ class StrategyFactory:
             #step 2: from the clean list of trading dates we have we now need to create the strategy and leg
             #objects from the leg data
 
-            #multileg strategy
-            self._multileg_config = self._config["backtest_config"]["multi_leg_strategy"]
+            #We initialise the configuration based on the strategy type (whether this is multileg or outright)
+            self._strat_config = self._config["backtest_config"][self._strat_type]
+
             #we now need to collect the list of options that are in the delta strike range and create strategy
             #objects assuming there are all 4 days to expiry in the weeklys
-
             for trade_date in self.strategies[year]:
                 #we omit the trading day if there is no 4 dte option (i.e. max of dte)
                 new_leg_mty = data["dte"].max()
@@ -110,9 +117,10 @@ class StrategyFactory:
                 if (data[data["date"] == trade_date]["dte"] == new_leg_mty).value_counts().index[0] is True:
                     print("{} - Creating strategies for trade date: {}".format(datetime.now(),
                                                                                trade_date))
-                    self.strategies[year][trade_date] = Strategy(config_params=self._multileg_config,
+                    self.strategies[year][trade_date] = Strategy(config_params=self._strat_config,
                                                                  trade_date=trade_date,
-                                                                 data=data)
+                                                                 data=data,
+                                                                 strat_type=self._strat_type)
                     print("{} - Finished creating strategies for trade date: {}".format(datetime.now(),
                                                                                         trade_date))
                 else:
@@ -135,28 +143,81 @@ class StrategyFactory:
 
 class Strategy:
 
-    def __init__(self, config_params=None, data=None, trade_date=None):
+    def __init__(self, config_params=None, data=None, trade_date=None, strat_type=None):
         #initialise config
         self._init_config(config_params)
         #create the data filter for the trade date
         self._tmp = data[data["date"] == trade_date]
-        #apply delta strike range
-        self._apply_delta_strike_filter()
 
-        #initialise call and put legs
-        self._init_call_legs(data=data)
-        self._init_put_legs(data=data)
+        #if we have a multileg strategy we need to create the legs from the delta strike
+        if strat_type == "multi_leg_strategy":
+            self._gen_multileg_strategy(data=data)
+        elif strat_type == "outright_strategy":
+            #need to call initialise call/put legs
+            self._gen_outright_strategy(data=data)
+
+        print("{} - Successfully created strategies".format(datetime.now()))
 
     def _init_config(self, config_params):
-        self._multileg_config = config_params
+        self._strat_config = config_params
+
+    def _gen_outright_strategy(self, data=None):
+        for call_put_legs in self._strat_config:
+            #create the self.call_legs = {} / self.put_legs = {} container
+            setattr(self, call_put_legs, {})
+            for _leg_id in self._strat_config[call_put_legs]:
+                _leg_params = self._strat_config[call_put_legs][_leg_id]
+                #get the fixed strike here
+                fixed_strike = self._get_fixed_strike(data=data, leg_params=_leg_params)
+                fixed_strike_leg_params = self._tmp.loc[(self._tmp["strike_price"] == fixed_strike) & \
+                                                        (self._tmp["cp_flag"] == _leg_params["call_put"].upper())]
+                #create the leg object
+                _leg = Leg(params=fixed_strike_leg_params)
+                _leg.leg_data = data.loc[(data["exdate"] == _leg.exp_date) & \
+                                         (data["strike_price"] == _leg.strike) & \
+                                         (data["cp_flag"] == _leg.opt_type)]
+                # the data has duplicate rows which is annoying - we drop them here
+                # note we had dte 4,4,3,3,2,2,1,1,0 so we drop these for the same fixed strike to expiry
+                _leg.leg_data.drop_duplicates(subset="dte", keep="last", inplace=True)
+                # add to the leg collection
+                getattr(self, call_put_legs)[_leg_id] = _leg
+
+    def _get_fixed_strike(self, data=None, leg_params=None):
+        # for each trade entry date we need to compute the fixed strike of the option
+        # pseudo method means we should be using the atm vol with the forward
+
+        # step 1: get the forward price
+        _fwd = self._tmp["forward_price"].iloc[0]
+        # step 2: get the atm vol by finding the fixed strike nearest to the forward price
+        # spx strikes round every 5 as the min increment
+        base = 5
+        _atm_strike = int(base * round(_fwd / base))
+        _atm_vol = self._tmp.loc[(self._tmp["strike_price"] == _atm_strike) & \
+                                 (self._tmp["cp_flag"] == leg_params["call_put"].upper())]["bs_vol"].values[0]
+        # step 3 compute the fixed strike option that we trade and create the leg
+        _fixed_strike = BlackScholes.invert_bs_delta_get_strike(forward=_fwd,
+                                                                delta_strike=leg_params["delta_strike"],
+                                                                mty=data["dte"].max(),
+                                                                vol=_atm_vol,
+                                                                option_type=leg_params["call_put"])
+        # step 4 round the fixed strike to nearest tradeable strike
+        fixed_strike = int(base * round(_fixed_strike / base))
+        return fixed_strike
+
+    def _gen_multileg_strategy(self, data=None):
+        # apply delta strike range
+        self._apply_delta_strike_filter()
+        # initialise call and put legs
+        self._init_multi_call_legs(data=data)
+        self._init_multi_put_legs(data=data)
 
     def _apply_delta_strike_filter(self):
-        self._call_delta_strikes = self._tmp.loc[(self._tmp['bs_delta'] >= self._multileg_config["call_legs"]["delta_strike_range"][1]) \
-                                                 & (self._tmp['bs_delta'] <= self._multileg_config["call_legs"]["delta_strike_range"][0])]
-        self._put_delta_strikes = self._tmp.loc[(self._tmp['bs_delta'] >= self._multileg_config["put_legs"]["delta_strike_range"][1]) \
-                                                 & (self._tmp['bs_delta'] <= self._multileg_config["put_legs"]["delta_strike_range"][0])]
+        self._call_delta_strikes = self._tmp.loc[(self._tmp['bs_delta'] >= self._strat_config["call_legs"]["delta_strike_range"][1]) \
+                                                 & (self._tmp['bs_delta'] <= self._strat_config["call_legs"]["delta_strike_range"][0])]
+        self._put_delta_strikes = self._tmp.loc[(self._tmp['bs_delta'] >= self._strat_config["put_legs"]["delta_strike_range"][1]) \
+                                                 & (self._tmp['bs_delta'] <= self._strat_config["put_legs"]["delta_strike_range"][0])]
 
-    def _init_call_legs(self, data=None):
+    def _init_multi_call_legs(self, data=None):
         self.call_legs = {}
         for idx in range(len(self._call_delta_strikes)):
             leg_id = "leg_{}".format(str(idx + 1))
@@ -171,7 +232,7 @@ class Strategy:
             #add to the leg collection
             self.call_legs[leg_id] = _leg
 
-    def _init_put_legs(self, data=None):
+    def _init_multi_put_legs(self, data=None):
         self.put_legs = {}
         for idx in range(len(self._put_delta_strikes)):
             leg_id = "leg_{}".format(str(idx + 1))

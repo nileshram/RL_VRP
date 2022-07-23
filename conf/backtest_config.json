@@ -6,23 +6,25 @@
       "hold_period": "HTM",
       "entry_freq": "1B",
       "dh_params": "1d",
-      "option_expiry_calendar": "weeklies"
+      "option_expiry_calendar": "weeklies",
+      "strat_type" : {"method" :  "outright_strategy"},
+      "sizing_params" : {"sizing_method" : "vega_target", "target_vega": 0.10}
     },
-    "strategy": {
-      "leg_1": {
-        "delta_strike": 0.40,
+    "outright_strategy": {
+      "call_legs": { "leg_1" :
+      {"delta_strike": 0.40,
         "delta_strike_type": "fixed",
         "call_put": "c",
         "long_short": -1,
-        "expiry": "1w"
+        "expiry": "1w"}
       },
-      "leg_2": {
-        "delta_strike": 0.40,
-        "delta_strike_type": "fixed",
-        "call_put": "p",
-        "long_short": -1,
-        "expiry": "1w"
-      }
+      "put_legs": { "leg_1" :
+        {"delta_strike": -0.40,
+          "delta_strike_type": "fixed",
+          "call_put": "p",
+          "long_short": -1,
+          "expiry": "1w"}
+        }
     },
     "multi_leg_strategy": {
       "call_legs": {

@@ -68,10 +68,31 @@ class BacktestingEngine:
         put_pnl = self._run_put_pnl()
         total_pnl = pd.concat([call_pnl, put_pnl],
                               axis=0).groupby("date").sum()
-        plt.plot(total_pnl["opt_pnl"].cumsum(),
-                 label="short_call_put_strip_pnl_unsized")
-        plt.plot(total_pnl["dh_pnl"].cumsum(),
-                 label="short_call_put_strip_dh_unsized")
+
+        # we build the index here starting at 100
+        strat_index = pd.DataFrame(index=total_pnl.index,
+                                   columns=total_pnl.columns)
+        index_start = 100
+        #insert starting value of strat
+        strat_index.iloc[:1] = index_start
+        #now we iterate through the total_pnl and we append the result to the strat index
+        for pnl_type in total_pnl.columns:
+            for i in range(1, len(strat_index)):
+                strat_index[pnl_type].iloc[i] = strat_index[pnl_type].iloc[i - 1] + total_pnl[pnl_type].iloc[i - 1]
+
+        plt.plot(strat_index["opt_pnl"],
+                 label="Unhedged")
+        plt.plot(strat_index["dh_pnl"],
+                 label="Daily delta-hedged")
+
+        #add chart formatting
+        ax1 = plt.gca()
+        plt.minorticks_on()
+        plt.xlabel('Time')
+        plt.ylabel('Strategy Index')
+        plt.title("SPX Weeklys Call/Put Strip Backtest")
+        ax1.set_facecolor(color='whitesmoke')
+        plt.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
         plt.legend()
         plt.show()
 

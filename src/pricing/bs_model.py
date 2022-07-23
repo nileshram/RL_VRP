@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import norm
-from scipy.special import ndtri
+from scipy.special import ndtri as norm_inv
 from scipy import optimize
 from py_vollib.black_scholes.implied_volatility import implied_volatility as iv
 from py_vollib.helpers.exceptions import PriceIsAboveMaximum, PriceIsBelowIntrinsic
@@ -130,5 +130,16 @@ class BlackScholes:
             if ivol <= 0:
                 return 0
             return ivol
+    @staticmethod
+    def invert_bs_delta_get_strike(forward, delta_strike, mty, vol, r=0, ann_factor=365, option_type=None):
+        #see the math appendix to invert delta strikes
+        if mty == 0:
+            return 0
+        else:
+            if option_type.lower() in ["c", "call"]:
+                return forward / np.exp((vol * np.sqrt(mty/ann_factor) * norm_inv(delta_strike)) - (r + (0.5 * vol**2) * np.sqrt(mty/ann_factor)))
+            elif option_type.lower() in ["p", "put"]:
+                return forward / np.exp((vol * np.sqrt(mty/ann_factor) * norm_inv(delta_strike + 1)) - (r + (0.5 * vol**2) * np.sqrt(mty/ann_factor)))
+
 
 
