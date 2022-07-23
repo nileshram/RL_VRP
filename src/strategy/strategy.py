@@ -169,8 +169,10 @@ class Strategy:
                 _leg_params = self._strat_config[call_put_legs][_leg_id]
                 #get the fixed strike here
                 fixed_strike = self._get_fixed_strike(data=data, leg_params=_leg_params)
-                fixed_strike_leg_params = self._tmp.loc[(self._tmp["strike_price"] == fixed_strike) & \
-                                                        (self._tmp["cp_flag"] == _leg_params["call_put"].upper())]
+                #we need to convert this row to a pandas series from the squeeze method
+                fs_leg_params = self._tmp.loc[(self._tmp["strike_price"] == fixed_strike) & \
+                                              (self._tmp["cp_flag"] == _leg_params["call_put"].upper())]
+                fixed_strike_leg_params = fs_leg_params[fs_leg_params["dte"] == data["dte"].max()].drop_duplicates(subset="dte", keep="last").squeeze(axis=0)
                 #create the leg object
                 _leg = Leg(params=fixed_strike_leg_params)
                 _leg.leg_data = data.loc[(data["exdate"] == _leg.exp_date) & \
