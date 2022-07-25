@@ -130,6 +130,7 @@ class BlackScholes:
             if ivol <= 0:
                 return 0
             return ivol
+
     @staticmethod
     def invert_bs_delta_get_strike(forward, delta_strike, mty, vol, r=0, ann_factor=365, option_type=None):
         #see the math appendix to invert delta strikes

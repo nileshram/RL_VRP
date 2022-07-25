@@ -7,7 +7,7 @@
       "entry_freq": "1B",
       "dh_params": "1d",
       "option_expiry_calendar": "weeklies",
-      "strat_type" : {"method" :  "outright_strategy"},
+      "strat_type" : {"method" :  "multi_leg_strategy"},
       "sizing_params" : {"sizing_method" : "vega_target", "target_vega": 0.10}
     },
     "outright_strategy": {
